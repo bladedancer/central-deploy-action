@@ -1,0 +1,30 @@
+{
+  "name": "central-deploy-action",
+  "author": "Gavin Matthews",
+  "license": "MIT",
+  "version": "0.0.1",
+  "description": "Deploy to Amplify Central API Server",
+  "main": "src/main.js",
+  "engines": {
+    "node": ">=10.0.0"
+  },
+  "scripts": {
+    "build:docker": "docker build --tag action ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:bladedancer/central-deploy-action.git"
+  },
+  "keywords": [
+    "actions",
+    "node",
+    "central"
+  ],
+  "dependencies": {
+    "@actions/core": "1.2.0",
+    "@actions/exec": "1.0.1",
+    "axios": "^0.19.2",
+    "jsrsasign": "^8.0.12",
+    "querystring": "^0.2.0"
+  }
+}

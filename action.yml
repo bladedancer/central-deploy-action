@@ -1,0 +1,27 @@
+name: 'Central Deploy'
+description: 'Deploys resources to Amplify Central API Server'
+author: 'Gavin Matthews'
+inputs:
+  kid:
+    description: 'The certificate id for the JWT access token request.'
+    required: true
+  alg:
+    description: 'The algorithm for the JWT access token request.'
+    defaults: 'RS256'
+    required: false
+  aud:
+    description: 'The audience for the JWT access token request.'
+    defaults: 'https://login.axway.com/auth/realms/Broker'
+    required: false
+  sub:
+    description: 'The client id for the JWT access token request.'
+    required: true
+  privateKey:
+    description: 'The client id for the JWT access token request.'
+    required: true
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+branding:
+  icon: 'upload-cloud'
+  color: 'orange'
