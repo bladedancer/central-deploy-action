@@ -40,6 +40,7 @@ function withDefault(value, defaultValue) {
  * Sync changed files
  */
 async function syncFiles() {
+  console.log(JSON.stringify(process.env, null, 4));
   // TODO: Load the yaml
   // try {
   //   await core.group("Uploading files", async () => {
