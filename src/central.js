@@ -1,21 +1,37 @@
-const yaml = require('js-yaml');
+const access = require('./access');
 const fs   = require('fs');
 const path = require('path');
 
+const ORDER = [
+    "Gateway",
+    "Stage",
+    "Environment",
+    "APIService",
+    "APIServiceRevision",
+    "APIServiceInstance",
+    "VirtualAPI",
+    "VirtualAPIDefinition",
+    "PathRoute",
+    "Rules",
+    "Deployment"
+];
+
 // Load the yaml and convert to resource
-async function loadYaml(yamlFile) {
-    const yamlPath = path.join(
-        process.env.GITHUB_WORKSPACE,
-        yamlFile
-    );
+async function processYaml(yamls) {
+    await access.getAccessToken(inputs);
 
-    const raw = fs.readFileSync(path, 'utf8');
-    const doc = yaml.safeLoad(raw);
-
-    console.log(doc);
-    // TODO: Convert the doc to a resource
+    yamls.sort((l,r) => ORDER.indexOf(l.kind) < ORDER.indexOf(r.kind))
+        .forEach(syncResoure);
 } 
 
+async function syncResource(yaml) {
+    // TODO convert the yaml to a json.
+    // FORMAT the creation url
+    console.log(yaml);
+    console.log("-----------------------------------");
+}
+
+
 module.exports = {
-    loadYaml
+    processYaml
 }

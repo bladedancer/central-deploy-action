@@ -1,11 +1,11 @@
-const access = require('./access');
+const yaml = require('js-yaml');
+const central = require('./central');
 const core = require('@actions/core');
 
 async function run() {
   const inputs = getUserArguments();
 
   try {
-    //await access.getAccessToken(inputs);
     await processFiles();
     console.log("✅ Deploy Complete");
   }
@@ -56,9 +56,10 @@ async function loadYaml(yamlFile) {
 async function processFiles(inputs) {
   const files = inputs.files.filter(n => !n.startsWith('.'));
 
-  const resourceYaml = files.map(n => loadYaml(n))
+  const resources = files.map(n => loadYaml(n))
     .filter(d => d.kind && d.group && d.spec);
-  
-  // TODO: convert the resourceyaml to json and submit
-  console.log(JSON.stringify(resourceYaml, null, 4));
+
+  console.log(JSON.stringify(resources, null, 4));
+
+  central.processYaml(resources);  
 }

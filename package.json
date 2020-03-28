@@ -2,7 +2,7 @@
   "name": "central-deploy-action",
   "author": "Gavin Matthews",
   "license": "MIT",
-  "version": "0.0.1",
+  "version": "1.0.3",
   "description": "Deploy to Amplify Central API Server",
   "main": "src/main.js",
   "engines": {
