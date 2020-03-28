@@ -2,10 +2,12 @@ const { KJUR } = require('jsrsasign');
 const { getInput } = require('@actions/core');
 const axios = require('axios');
 const querystring = require('querystring');
+const config = require('./config');
 
-async function getAccessToken(inputs) {
-    const jwt = getSignedJWT(inputs);
-    const tokenResp = tokenRequest(inputs.aud, jwt);
+
+async function getAccessToken() {
+    const jwt = getSignedJWT(config);
+    const tokenResp = tokenRequest(config.aud, jwt);
     return tokenResp.access_token;
 }
 

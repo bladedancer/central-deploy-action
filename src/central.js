@@ -1,6 +1,7 @@
 const access = require('./access');
 const fs   = require('fs');
 const path = require('path');
+const config = require('./config');
 
 const ORDER = [
     "Gateway",
@@ -18,7 +19,7 @@ const ORDER = [
 
 // Load the yaml and convert to resource
 async function processYaml(yamls) {
-    await access.getAccessToken(inputs);
+    await access.getAccessToken();
 
     yamls.sort((l,r) => ORDER.indexOf(l.kind) < ORDER.indexOf(r.kind))
         .forEach(syncResoure);
