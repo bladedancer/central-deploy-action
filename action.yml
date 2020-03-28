@@ -2,6 +2,9 @@ name: 'Central Deploy'
 description: 'Deploys resources to Amplify Central API Server'
 author: 'Gavin Matthews'
 inputs:
+  files:
+    description: 'The files that changed.'
+    required: true
   kid:
     description: 'The certificate id for the JWT access token request.'
     required: true
