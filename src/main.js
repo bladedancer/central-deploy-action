@@ -1,6 +1,9 @@
 const yaml = require('js-yaml');
 const central = require('./central');
 const config = require('./config');
+const fs   = require('fs');
+const path = require('path');
+const core = require('@actions/core');
 
 async function run() {
   try {
@@ -16,13 +19,13 @@ async function run() {
 run();
 
 // Load the yaml and convert to resource
-async function loadYaml(yamlFile) {
+function loadYaml(yamlFile) {
   const yamlPath = path.join(
       process.env.GITHUB_WORKSPACE,
       yamlFile
   );
 
-  const raw = fs.readFileSync(path, 'utf8');
+  const raw = fs.readFileSync(yamlPath, 'utf8');
   const doc = yaml.safeLoad(raw);
 
   return doc;
@@ -32,12 +35,12 @@ async function loadYaml(yamlFile) {
  * Process the files
  */
 async function processFiles() {
-  const files = config.files.filter(n => !n.startsWith('.'));
+  const files = config.files.split(' ').filter(n => !n.startsWith('.'));
+  console.log("FILES: ", files);
 
-  const resources = files.map(n => loadYaml(n))
+  const deleted = files.filter(f => !fs.existsSync(f));
+  const modified = files.filter(f => !(deleted.indexOf(f)!==-1)).map(n => loadYaml(n))
     .filter(d => d.kind && d.group && d.spec);
 
-  console.log(JSON.stringify(resources, null, 4));
-
-  central.processYaml(resources);  
+  await central.process(deleted, modified);  
 }

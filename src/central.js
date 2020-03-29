@@ -1,8 +1,7 @@
 const access = require('./access');
-const fs   = require('fs');
-const path = require('path');
 const config = require('./config');
 
+// TODO: Should string together order dynamically from defs.
 const ORDER = [
     "Gateway",
     "Stage",
@@ -18,12 +17,19 @@ const ORDER = [
 ];
 
 // Load the yaml and convert to resource
-async function processYaml(yamls) {
+async function process(deleted, modified) {
     await access.getAccessToken();
 
-    yamls.sort((l,r) => ORDER.indexOf(l.kind) < ORDER.indexOf(r.kind))
-        .forEach(syncResoure);
+    // TODO ORDERING
+    deleted.forEach(deleteResource);
+
+    modified.sort((l,r) => ORDER.indexOf(l.kind) < ORDER.indexOf(r.kind))
+        .forEach(syncResource);
 } 
+
+async function deleteResource(deletedPath) {
+    console.log("DELETED: " + deletedPath);
+}
 
 async function syncResource(yaml) {
     // TODO convert the yaml to a json.
@@ -32,7 +38,6 @@ async function syncResource(yaml) {
     console.log("-----------------------------------");
 }
 
-
 module.exports = {
-    processYaml
+    process
 }
