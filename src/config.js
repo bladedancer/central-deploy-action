@@ -20,5 +20,9 @@ module.exports = {
   ),
   sub: core.getInput("sub", { required: true }),
   privateKey: core.getInput("privateKey", { required: true }),
-  tag: core.getInput("tag", { required: true })
+  tag: core.getInput("tag", { required: true }),
+  central: withDefault(
+    core.getInput("central", { required: false }),
+    "https://apicentral.axway.com/apis"
+  ) 
 };

@@ -6,7 +6,7 @@ const config = require("./config");
 
 async function getAccessToken() {
   const jwt = getSignedJWT(config);
-  const tokenResp = tokenRequest(config.aud, jwt);
+  const tokenResp = await tokenRequest(config.aud, jwt);
   return tokenResp.access_token;
 }
 
@@ -23,12 +23,13 @@ async function tokenRequest(aud, jwt) {
     method: "post",
     url,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded"
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Accept": "application/json"
     },
     data: querystring.stringify(data)
   });
 
-  return response;
+  return response.data;
 }
 
 function getSignedJWT({ kid, alg, iss, aud, sub, privateKey }) {
