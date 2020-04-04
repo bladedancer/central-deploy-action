@@ -5,9 +5,13 @@ const querystring = require("querystring");
 const config = require("./config");
 
 async function getAccessToken() {
-  const jwt = getSignedJWT(config);
-  const tokenResp = await tokenRequest(config.aud, jwt);
-  return tokenResp.access_token;
+  try {
+    const jwt = getSignedJWT(config);
+    const tokenResp = await tokenRequest(config.aud, jwt);
+    return tokenResp.access_token;
+  } catch (e) {
+    throw e;
+  }
 }
 
 async function tokenRequest(aud, jwt) {
@@ -19,17 +23,21 @@ async function tokenRequest(aud, jwt) {
     client_assertion: jwt
   };
 
-  const response = await axios({
-    method: "post",
-    url,
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Accept": "application/json"
-    },
-    data: querystring.stringify(data)
-  });
+  try {
+    const response = await axios({
+      method: "post",
+      url,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "application/json"
+      },
+      data: querystring.stringify(data)
+    });
 
-  return response.data;
+    return response.data;
+  } catch (e) {
+    throw e;
+  }
 }
 
 function getSignedJWT({ kid, alg, iss, aud, sub, privateKey }) {

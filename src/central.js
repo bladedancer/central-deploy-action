@@ -123,8 +123,12 @@ async function loadProjectFromCentral() {
   let project = [];
 
   for (const kind of rootKinds) {
-    const resources = await loadTaggedResource(kind, config.tag);
-    scopes = scopes.concat(resources);
+    try {
+      const resources = await loadTaggedResource(kind, config.tag);
+      scopes = scopes.concat(resources);
+    } catch (e) {
+      throw e;
+    }
   }
   project = project.concat(scopes);
 
@@ -132,12 +136,16 @@ async function loadProjectFromCentral() {
   for (const scope of scopes) {
     const scopedKinds = Object.keys(RESOURCES).filter(r => RESOURCES[r].scope === scope.kind);
     for (const kind of scopedKinds) {
-      const resources = await loadTaggedResource(kind, config.tag, scope.name);
-      // Surprisingly the scope isn't in the response.
-      resources.forEach(r => {
-        r.scope = scope.name;
-      })
-      project = project.concat(resources);
+      try {
+        const resources = await loadTaggedResource(kind, config.tag, scope.name);
+        // Surprisingly the scope isn't in the response.
+        resources.forEach(r => {
+          r.scope = scope.name;
+        })
+        project = project.concat(resources);
+      } catch (e) {
+        throw e;
+      }
     }
   }
 
@@ -175,12 +183,16 @@ async function loadTaggedResource(kind, tag, scope) {
 // For simplicity going to load the entire project and diff it.
 // It's the easiest way to find deletions and multiple resources per file.
 async function loadProjectFiles() {
-  const project = []
-  for await (const yamlFile of getYaml(process.env.GITHUB_WORKSPACE)) {
-    console.log(`Loading ${yamlFile}`);
-    const raw = fs.readFileSync(yamlFile, 'utf8');
-    const doc = yaml.safeLoad(raw);
-    project.push(doc);
+  const project = [];
+  try {
+    for await (const yamlFile of getYaml(process.env.GITHUB_WORKSPACE)) {
+      console.log(`Loading ${yamlFile}`);
+      const raw = fs.readFileSync(yamlFile, 'utf8');
+      const doc = yaml.safeLoad(raw);
+      project.push(doc);
+    }
+  } catch (e) {
+    throw e;
   }
 
   return mapByPath(project);
@@ -213,38 +225,54 @@ function delta(desired, actual) {
   }
 }
 
-function applyChanges({deleted, created, updated}) {
-  applyDeletes(deleted);
-  applyCreates(created);
-  applyUpdates(updated);
+async function applyChanges({deleted, created, updated}) {
+  try {
+    await applyDeletes(deleted);
+    await applyCreates(created);
+    await applyUpdates(updated);
+  } catch(e) {
+    throw e;
+  }
 }
 
-function applyCreates(created) {
-  created.sort((l,r) => Object.keys(RESOURCES).indexOf(l.scope) > Object.keys(RESOURCES).indexOf(r.scope));
+async function applyCreates(created) {
+  created = created.sort((l,r) => Object.keys(RESOURCES).indexOf(l.kind) > Object.keys(RESOURCES).indexOf(r.kind));
   for (let c of created) {
     let key = resourceUrl(c);
     key = key.substr(0, key.lastIndexOf('/')); 
     delete c.apiVersion;
     delete c.group;
     delete c.kind;
-    applyToCentral('post', key, c);
+    try {
+      await applyToCentral('post', key, c);
+    } catch (e) {
+      throw e;
+    }
   }
 }
 
-function applyUpdates(updated) {
-  updated.sort((l,r) => Object.keys(RESOURCES).indexOf(l.scope) > Object.keys(RESOURCES).indexOf(r.scope));
+async function applyUpdates(updated) {
+  updated = updated.sort((l,r) => Object.keys(RESOURCES).indexOf(l.kind) > Object.keys(RESOURCES).indexOf(r.kind));
   for (let u of updated) {
     const key = resourceUrl(u);
     delete u.apiVersion;
     delete u.group;
     delete u.kind;
-    applyToCentral('put', key, u);
+    try {
+      await applyToCentral('put', key, u);
+    } catch (e) {
+      throw e;
+    }
   }
 }
 
-function applyDeletes(deleted) {
+async function applyDeletes(deleted) {
   for (let d of deleted) {
-    applyToCentral('delete', d);
+    try {
+      await applyToCentral('delete', d);
+    } catch (e) {
+      throw e;
+    }
   }
 }
 
@@ -274,7 +302,7 @@ async function processProject() {
     const centralProject = await loadProjectFromCentral();
     
     const changes = delta(filesystemProject, centralProject);
-    applyChanges(changes);
+    await applyChanges(changes);
     // TODO: ADD gateways to project and apply diff to central
   } catch (err) {
     console.error(err);
