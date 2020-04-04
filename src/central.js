@@ -4,7 +4,7 @@ const yaml = require('js-yaml');
 const axios = require('axios');
 const fs = require('fs');
 const { getYaml } = require('./utils');
-
+const deepEqual = require('deep-equal')
 
 // TODO: Should string together order dynamically from defs.
 const RESOURCES = {
@@ -56,11 +56,21 @@ const RESOURCES = {
   },
   'Deployment': {
     scope: 'Environment',
-    plural: 'deplotments'
+    plural: 'deployments'
   }
 };
 
 let accessToken;
+
+function resourceUrl(resource) {
+  let key = `${RESOURCES[resource.kind].plural}/${resource.name}`;
+  if (resource.scope) {
+    const scopeKind = RESOURCES[resource.kind].scope;
+    const scope = RESOURCES[scopeKind];
+    key = `${scope.plural}/${resource.scope}/${key}`;
+  }
+  return key;
+}
 
 function mapByPath(projectList) {
   // Map the project resources by their resource path
@@ -117,6 +127,7 @@ async function loadTaggedResource(kind, tag, scope) {
   }
   
   try {
+    console.log(`Loading: ${url}`);
     const response = await axios({
       method: 'get',
       url: `${config.central}/management/v1alpha1/${url}`,
@@ -139,6 +150,7 @@ async function loadTaggedResource(kind, tag, scope) {
 async function loadProjectFiles() {
   const project = []
   for await (const yamlFile of getYaml(process.env.GITHUB_WORKSPACE)) {
+    console.log(`Loading ${yamlFile}`);
     const raw = fs.readFileSync(yamlFile, 'utf8');
     const doc = yaml.safeLoad(raw);
     project.push(doc);
@@ -148,19 +160,24 @@ async function loadProjectFiles() {
 }
 
 function delta(desired, actual) {
-  const deleted = Object.keys(actual).filter(f => !desired[f]);
-  const created = Object.keys(desired).filter(f => !actual[f]).map(c => desired[c]);
-
-  const updated = []
-  // TODO UPDATED
-
-  // Add the project tag if it's not already there
-  created.concat(updated).forEach(r => {
-    r.tags = r.tags || [];
-    if (r.tags.indexOf(config.tag) === -1) {
-      r.tags.push(config.tag);
+  // Clean up the objects
+  Object.values(desired).forEach(d => {
+    d.attributes = d.attributes || {};
+    d.tags = d.tags || [];
+    if (d.tags.indexOf(config.tag) === -1) {
+      d.tags.push(config.tag);
     }
   });
+  Object.values(actual).forEach(a => {
+    delete a.metadata;
+  });
+
+  const deleted = Object.keys(actual).filter(f => !desired[f]);
+  let created = Object.keys(desired).filter(f => !actual[f]);
+  let updated = Object.keys(desired).filter(f => deleted.indexOf(f) === -1 && created.indexOf(f) === -1 && !deepEqual(desired[f], actual[f]));
+  
+  created = created.map(c => desired[c]);
+  updated = updated.map(c => desired[c]);
 
   return {
     deleted,
@@ -169,6 +186,57 @@ function delta(desired, actual) {
   }
 }
 
+function applyChanges({deleted, created, updated}) {
+  applyDeletes(deleted);
+  applyCreates(created);
+  applyUpdates(updated);
+}
+
+function applyCreates(created) {
+  created.sort((l,r) => Object.keys(RESOURCES).indexOf(l.scope) > Object.keys(RESOURCES).indexOf(r.scope));
+  for (let c of created) {
+    const key = resourceUrl(c);
+    delete c.apiVersion;
+    delete c.group;
+    delete c.kind;
+    applyToCentral('post', key, c);
+  }
+}
+
+function applyUpdates(updated) {
+  updated.sort((l,r) => Object.keys(RESOURCES).indexOf(l.scope) > Object.keys(RESOURCES).indexOf(r.scope));
+  for (let u of updated) {
+    const key = resourceUrl(u);
+    delete u.apiVersion;
+    delete u.group;
+    delete u.kind;
+    applyToCentral('put', key, u);
+  }
+}
+
+function applyDeletes(deleted) {
+  for (let d of deleted) {
+    applyToCentral('delete', d);
+  }
+}
+
+async function applyToCentral(method, url, data) {
+  try {
+    console.log(`${method} ${url}`);
+    const response = await axios({
+      method,
+      url: `${config.central}/management/v1alpha1/${url}`,
+      data,
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+    return response.data;
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
+}
 
 // Load the yaml and convert to resource
 async function processProject() {
@@ -178,7 +246,7 @@ async function processProject() {
     const centralProject = await loadProjectFromCentral();
     
     const changes = delta(filesystemProject, centralProject);
-    console.log(changes);
+    applyChanges(changes);
     // TODO: ADD gateways to project and apply diff to central
   } catch (err) {
     console.error(err);
