@@ -23,5 +23,6 @@ module.exports = {
   central: withDefault(
     core.getInput("central", { required: false }),
     "https://apicentral.axway.com/apis"
-  ) 
+  ),
+  prodDeployment: (core.getInput("aud", {required: false}) !== 'https://login-preprod.axway.com/auth/realms/Broker')
 };

@@ -6,59 +6,86 @@ const fs = require('fs');
 const { getYaml } = require('./utils');
 const deepEqual = require('deep-equal')
 
+let RESOURCES;
+
 // TODO: Should string together order dynamically from defs.
-const RESOURCES = {
-  'Gateway' : {
-    plural: 'gateways'
-  },
-  'Stage': {
-    scope: 'Gateway',
-    plural: 'stages'
-  },
-  'Policy': {
-    scope: 'Gateway',
-    plural: 'policies'
-  },
-  'Environment': {
-    plural: 'environments'
-  },
-  'APIService': {
-    scope: 'Environment',
-    plural: 'apiservices'
-  },
-  'APIServiceRevision': {
-    scope: 'Environment',
-    plural: 'apiservicerevisions'
-  },
-  'APIServiceInstance': {
-    scope: 'Environment',
-    plural: 'apiserviceinstances'
-  },
-  'ConsumerInstance': {
-    scope: 'Environment',
-    plural: 'consumerinstances'
-  },
-  'VirtualAPI': {
-    scope: 'Environment',
-    plural: 'virtualapis'
-  },
-  'VirtualAPIDefinition': {
-    scope: 'Environment',
-    plural: 'virtualapidefinitions'
-  },
-  'PathRoute': {
-    scope: 'Environment',
-    plural: 'pathroutes'
-  },
-  'Rules': {
-    scope: 'Environment',
-    plural: 'rules'
-  },
-  'Deployment': {
-    scope: 'Environment',
-    plural: 'deployments'
-  }
-};
+if (config.prodDeployment) {
+  RESOURCES = {
+    'Environment': {
+      plural: 'environments'
+    },
+    'APIService': {
+      scope: 'Environment',
+      plural: 'apiservices'
+    },
+    'APIServiceRevision': {
+      scope: 'Environment',
+      plural: 'apiservicerevisions'
+    },
+    'APIServiceInstance': {
+      scope: 'Environment',
+      plural: 'apiserviceinstances'
+    },
+    'ConsumerInstance': {
+      scope: 'Environment',
+      plural: 'consumerinstances'
+    }
+  };
+  
+} else {
+  RESOURCES = {
+    'Gateway' : {
+      plural: 'gateways'
+    },
+    'Stage': {
+      scope: 'Gateway',
+      plural: 'stages'
+    },
+    'Policy': {
+      scope: 'Gateway',
+      plural: 'policies'
+    },
+    'Environment': {
+      plural: 'environments'
+    },
+    'APIService': {
+      scope: 'Environment',
+      plural: 'apiservices'
+    },
+    'APIServiceRevision': {
+      scope: 'Environment',
+      plural: 'apiservicerevisions'
+    },
+    'APIServiceInstance': {
+      scope: 'Environment',
+      plural: 'apiserviceinstances'
+    },
+    'ConsumerInstance': {
+      scope: 'Environment',
+      plural: 'consumerinstances'
+    },
+    'VirtualAPI': {
+      scope: 'Environment',
+      plural: 'virtualapis'
+    },
+    'VirtualAPIDefinition': {
+      scope: 'Environment',
+      plural: 'virtualapidefinitions'
+    },
+    'PathRoute': {
+      scope: 'Environment',
+      plural: 'pathroutes'
+    },
+    'Rules': {
+      scope: 'Environment',
+      plural: 'rules'
+    },
+    'Deployment': {
+      scope: 'Environment',
+      plural: 'deployments'
+    }
+  };
+}
 
 let accessToken;
 
@@ -195,7 +222,8 @@ function applyChanges({deleted, created, updated}) {
 function applyCreates(created) {
   created.sort((l,r) => Object.keys(RESOURCES).indexOf(l.scope) > Object.keys(RESOURCES).indexOf(r.scope));
   for (let c of created) {
-    const key = resourceUrl(c);
+    let key = resourceUrl(c);
+    key = key.substr(0, key.lastIndexOf('/')); 
     delete c.apiVersion;
     delete c.group;
     delete c.kind;
