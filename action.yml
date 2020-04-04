@@ -2,9 +2,6 @@ name: 'Central Deploy'
 description: 'Deploys resources to Amplify Central API Server'
 author: 'Gavin Matthews'
 inputs:
-  files:
-    description: 'The files that changed.'
-    required: true
   kid:
     description: 'The certificate id for the JWT access token request.'
     required: true
@@ -21,6 +18,9 @@ inputs:
     required: true
   privateKey:
     description: 'The client id for the JWT access token request.'
+    required: true
+  tag:
+    description: 'The tag that identifies project resources.'
     required: true
 runs:
   using: 'docker'

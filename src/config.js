@@ -8,7 +8,6 @@ function withDefault(value, defaultValue) {
 }
 
 module.exports = {
-  files: core.getInput("files", { required: true }),
   kid: core.getInput("kid", { required: true }),
   alg: withDefault(core.getInput("alg", { required: false }), "RS256"),
   iss:
