@@ -7,6 +7,20 @@ const { getYaml } = require('./utils');
 const deepEqual = require('deep-equal')
 
 let RESOURCES;
+const ORDER = [
+  'Gateway',
+  'Stage',
+  'Policy',
+  'Environment',
+  'APIService',
+  'APIServiceRevision',
+  'APIServiceInstance',
+  'ConsumerInstance',
+  'VirtualAPI',
+  'VirtualAPIDefinition',
+  'PathRoute',
+  'Rules',
+  'Deployment'];
 
 // TODO: Should string together order dynamically from defs.
 if (config.prodDeployment) {
@@ -236,7 +250,7 @@ async function applyChanges({deleted, created, updated}) {
 }
 
 async function applyCreates(created) {
-  created = created.sort((l,r) => Object.keys(RESOURCES).indexOf(l.kind) > Object.keys(RESOURCES).indexOf(r.kind));
+  created = created.sort((l,r) => ORDER.indexOf(l.kind) > ORDER.indexOf(r.kind));
   for (let c of created) {
     let key = resourceUrl(c);
     key = key.substr(0, key.lastIndexOf('/')); 
@@ -252,7 +266,7 @@ async function applyCreates(created) {
 }
 
 async function applyUpdates(updated) {
-  updated = updated.sort((l,r) => Object.keys(RESOURCES).indexOf(l.kind) > Object.keys(RESOURCES).indexOf(r.kind));
+  updated = updated.sort((l,r) => ORDER.indexOf(l.kind) > ORDER.indexOf(r.kind));
   for (let u of updated) {
     const key = resourceUrl(u);
     delete u.apiVersion;
