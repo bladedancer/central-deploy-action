@@ -9,8 +9,8 @@ const deepEqual = require('deep-equal')
 let RESOURCES;
 const ORDER = [
   'Gateway',
-  'Stage',
   'Policy',
+  'Stage',
   'Environment',
   'APIService',
   'APIServiceRevision',
@@ -51,13 +51,13 @@ if (config.prodDeployment) {
     'Gateway' : {
       plural: 'gateways'
     },
-    'Stage': {
-      scope: 'Gateway',
-      plural: 'stages'
-    },
     'Policy': {
       scope: 'Gateway',
       plural: 'policies'
+    },
+    'Stage': {
+      scope: 'Gateway',
+      plural: 'stages'
     },
     'Environment': {
       plural: 'environments'
