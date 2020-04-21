@@ -231,11 +231,15 @@ function delta(desired, actual) {
   let updated = Object.keys(desired).filter(f => {
     // Tag order is not maintained. Updated if not created, not deleted and contents differ
     // (other than tag ordering).
-    desired[f].tags = (desired[f].tags || []).sort();
-    actual[f].tags = (actual[f].tags || []).sort();
-    return deleted.indexOf(f) === -1
-      && created.indexOf(f) === -1
-      && !deepEqual(desired[f], actual[f]);
+    if (desired[f] && actual[f]) {
+      desired[f].tags = (desired[f].tags || []).sort();
+      actual[f].tags = (actual[f].tags || []).sort();
+      return deleted.indexOf(f) === -1
+        && created.indexOf(f) === -1
+        && !deepEqual(desired[f], actual[f]);
+    } else {
+      return desired[f] === actual[f];
+    }
   });
   
   created = created.map(c => desired[c]);
@@ -254,9 +258,9 @@ async function applyChanges({deleted, created, updated}) {
 
   try {
     summarize(deleted, created, updated);
-    // await applyDeletes(deleted);
-    // await applyCreates(created);
-    // await applyUpdates(updated);
+    await applyDeletes(deleted);
+    await applyCreates(created);
+    await applyUpdates(updated);
   } catch(e) {
     throw e;
   }
