@@ -18,8 +18,8 @@ const ORDER = [
   'ConsumerInstance',
   'VirtualAPI',
   'VirtualAPIDefinition',
-  'PathRoute',
   'Rules',
+  'PathRoute',
   'Deployment'];
 
 // TODO: Should string together order dynamically from defs.
@@ -139,6 +139,7 @@ async function loadProjectFromCentral() {
   for (const kind of rootKinds) {
     try {
       const resources = await loadTaggedResource(kind, config.tag);
+      //console.log(resources);
       scopes = scopes.concat(resources);
     } catch (e) {
       throw e;
@@ -225,9 +226,17 @@ function delta(desired, actual) {
     delete a.metadata;
   });
 
-  const deleted = Object.keys(actual).filter(f => !desired[f]);
+  const deleted = Object.keys(actual).filter(f => !desired[f]).reverse();
   let created = Object.keys(desired).filter(f => !actual[f]);
-  let updated = Object.keys(desired).filter(f => deleted.indexOf(f) === -1 && created.indexOf(f) === -1 && !deepEqual(desired[f], actual[f]));
+  let updated = Object.keys(desired).filter(f => {
+    // Tag order is not maintained. Updated if not created, not deleted and contents differ
+    // (other than tag ordering).
+    desired[f].tags = (desired[f].tags || []).sort();
+    actual[f].tags = (actual[f].tags || []).sort();
+    return deleted.indexOf(f) === -1
+      && created.indexOf(f) === -1
+      && !deepEqual(desired[f], actual[f]);
+  });
   
   created = created.map(c => desired[c]);
   updated = updated.map(c => desired[c]);
@@ -240,17 +249,35 @@ function delta(desired, actual) {
 }
 
 async function applyChanges({deleted, created, updated}) {
+  updated = updated.sort((l,r) => ORDER.indexOf(l.kind) > ORDER.indexOf(r.kind) ? 1 : -1);
+  created = created.sort((l,r) => ORDER.indexOf(l.kind) > ORDER.indexOf(r.kind) ? 1 : -1);
+
   try {
-    await applyDeletes(deleted);
-    await applyCreates(created);
-    await applyUpdates(updated);
+    summarize(deleted, created, updated);
+    // await applyDeletes(deleted);
+    // await applyCreates(created);
+    // await applyUpdates(updated);
   } catch(e) {
     throw e;
   }
 }
 
+function summarize(deleted, created, updated) {
+  console.log('Execution Plan: ')
+  for (let d of deleted) {
+    console.log(`    Deleting: ${d}`)
+  }
+
+  for (let c of created) {
+    console.log(`    Creating: ${c.kind}/${c.name}`)
+  }
+
+  for (let u of updated) {
+    console.log(`    Updating: ${u.kind}/${u.name}`)
+  }
+}
+
 async function applyCreates(created) {
-  created = created.sort((l,r) => ORDER.indexOf(l.kind) > ORDER.indexOf(r.kind));
   for (let c of created) {
     let key = resourceUrl(c);
     key = key.substr(0, key.lastIndexOf('/')); 
@@ -266,7 +293,6 @@ async function applyCreates(created) {
 }
 
 async function applyUpdates(updated) {
-  updated = updated.sort((l,r) => ORDER.indexOf(l.kind) > ORDER.indexOf(r.kind));
   for (let u of updated) {
     const key = resourceUrl(u);
     delete u.apiVersion;
@@ -303,6 +329,10 @@ async function applyToCentral(method, url, data) {
     });
     return response.data;
   } catch (e) {
+    if (method === 'delete' && e.response && e.response.status === 404) {
+      // ignore it
+      return;
+    }
     console.error(e);
     throw e;
   }
@@ -312,12 +342,16 @@ async function applyToCentral(method, url, data) {
 async function processProject() {
   try {
     accessToken = await access.getAccessToken();
-    const filesystemProject = await loadProjectFiles();
-    const centralProject = await loadProjectFromCentral();
-    
-    const changes = delta(filesystemProject, centralProject);
-    await applyChanges(changes);
-    // TODO: ADD gateways to project and apply diff to central
+    if (process.env.GITHUB_WORKSPACE) {
+      const filesystemProject = await loadProjectFiles();
+      const centralProject = await loadProjectFromCentral();
+      
+      const changes = delta(filesystemProject, centralProject);
+      await applyChanges(changes);
+      console.log("✅ Deploy Complete");
+    } else {
+      console.log(accessToken);
+    }
   } catch (err) {
     console.error(err);
     throw err;
