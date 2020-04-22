@@ -18,6 +18,7 @@ const ORDER = [
   'ConsumerInstance',
   'VirtualAPI',
   'VirtualAPIDefinition',
+  'CorsRule',
   'Rules',
   'PathRoute',
   'Deployment'];
@@ -89,6 +90,10 @@ if (config.prodDeployment) {
     'PathRoute': {
       scope: 'Environment',
       plural: 'pathroutes'
+    },
+    'CorsRule': {
+      scope: 'Environment',
+      plural: 'corsrules'
     },
     'Rules': {
       scope: 'Environment',
@@ -203,8 +208,7 @@ async function loadProjectFiles() {
     for await (const yamlFile of getYaml(process.env.GITHUB_WORKSPACE)) {
       console.log(`Loading ${yamlFile}`);
       const raw = fs.readFileSync(yamlFile, 'utf8');
-      const doc = yaml.safeLoad(raw);
-      project.push(doc);
+      yaml.safeLoadAll(raw, doc => project.push(doc));
     }
   } catch (e) {
     throw e;
