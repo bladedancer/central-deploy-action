@@ -181,7 +181,7 @@ function delta(desired, actual) {
     delete a.metadata;
   });
 
-  const deleted = Object.keys(actual).filter(f => !desired[f]).reverse();
+  let deleted = Object.keys(actual).filter(f => !desired[f]);
   let created = Object.keys(desired).filter(f => !actual[f]);
   let updated = Object.keys(desired).filter(f => {
     // Tag order is not maintained. Updated if not created, not deleted and contents differ
@@ -199,6 +199,7 @@ function delta(desired, actual) {
   
   created = created.map(c => desired[c]);
   updated = updated.map(c => desired[c]);
+  deleted = deleted.map(c => actual[c]);
 
   return {
     deleted,
@@ -210,6 +211,7 @@ function delta(desired, actual) {
 async function applyChanges({deleted, created, updated}) {
   updated = updated.sort((l,r) => ORDER.indexOf(l.kind) > ORDER.indexOf(r.kind) ? 1 : -1);
   created = created.sort((l,r) => ORDER.indexOf(l.kind) > ORDER.indexOf(r.kind) ? 1 : -1);
+  deleted = deleted.sort((l,r) => ORDER.indexOf(l.kind) > ORDER.indexOf(r.kind) ? -1 : 1); // delete bottom up
 
   try {
     summarize(deleted, created, updated);
@@ -224,7 +226,7 @@ async function applyChanges({deleted, created, updated}) {
 function summarize(deleted, created, updated) {
   console.log('Execution Plan: ')
   for (let d of deleted) {
-    console.log(`    Deleting: ${d}`)
+    console.log(`    Deleting: ${d.kind}/${d.name}`)
   }
 
   for (let c of created) {
@@ -268,7 +270,8 @@ async function applyUpdates(updated) {
 async function applyDeletes(deleted) {
   for (let d of deleted) {
     try {
-      await applyToCentral('delete', d);
+      const key = resourceUrl(d);
+      await applyToCentral('delete', key);
     } catch (e) {
       throw e;
     }
