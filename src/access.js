@@ -68,8 +68,6 @@ function getSignedJWT({ kid, alg, iss, aud, sub, privateKey }) {
     iat: Math.ceil(issuedAtTimeSeconds)
   };
 
-  //console.log(JSON.stringify(header));
-  //console.log(JSON.stringify(payload));
   // Prep the objects for a JWT
   const sHeader = JSON.stringify(header);
   const sPayload = JSON.stringify(payload);

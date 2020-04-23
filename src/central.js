@@ -1,5 +1,6 @@
 const access = require('./access');
 const config = require('./config');
+const graph = require('./graph');
 const yaml = require('js-yaml');
 const axios = require('axios');
 const fs = require('fs');
@@ -7,105 +8,7 @@ const { getYaml } = require('./utils');
 const deepEqual = require('deep-equal')
 
 let RESOURCES;
-const ORDER = [
-  'Gateway',
-  'Policy',
-  'Stage',
-  'Environment',
-  'APIService',
-  'APIServiceRevision',
-  'APIServiceInstance',
-  'ConsumerInstance',
-  'VirtualAPI',
-  'VirtualAPIDefinition',
-  'CorsRule',
-  'Rules',
-  'PathRoute',
-  'Deployment'];
-
-// TODO: Should string together order dynamically from defs.
-if (config.prodDeployment) {
-  RESOURCES = {
-    'Environment': {
-      plural: 'environments'
-    },
-    'APIService': {
-      scope: 'Environment',
-      plural: 'apiservices'
-    },
-    'APIServiceRevision': {
-      scope: 'Environment',
-      plural: 'apiservicerevisions'
-    },
-    'APIServiceInstance': {
-      scope: 'Environment',
-      plural: 'apiserviceinstances'
-    },
-    'ConsumerInstance': {
-      scope: 'Environment',
-      plural: 'consumerinstances'
-    }
-  };
-  
-} else {
-  RESOURCES = {
-    'Gateway' : {
-      plural: 'gateways'
-    },
-    'Policy': {
-      scope: 'Gateway',
-      plural: 'policies'
-    },
-    'Stage': {
-      scope: 'Gateway',
-      plural: 'stages'
-    },
-    'Environment': {
-      plural: 'environments'
-    },
-    'APIService': {
-      scope: 'Environment',
-      plural: 'apiservices'
-    },
-    'APIServiceRevision': {
-      scope: 'Environment',
-      plural: 'apiservicerevisions'
-    },
-    'APIServiceInstance': {
-      scope: 'Environment',
-      plural: 'apiserviceinstances'
-    },
-    'ConsumerInstance': {
-      scope: 'Environment',
-      plural: 'consumerinstances'
-    },
-    'VirtualAPI': {
-      scope: 'Environment',
-      plural: 'virtualapis'
-    },
-    'VirtualAPIDefinition': {
-      scope: 'Environment',
-      plural: 'virtualapidefinitions'
-    },
-    'PathRoute': {
-      scope: 'Environment',
-      plural: 'pathroutes'
-    },
-    'CorsRule': {
-      scope: 'Environment',
-      plural: 'corsrules'
-    },
-    'Rules': {
-      scope: 'Environment',
-      plural: 'rules'
-    },
-    'Deployment': {
-      scope: 'Environment',
-      plural: 'deployments'
-    }
-  };
-}
-
+let ORDER;
 let accessToken;
 
 function resourceUrl(resource) {
@@ -130,6 +33,54 @@ function mapByPath(projectList) {
     col[key] = cur;
     return col;
   }, {});
+}
+
+// Get all the definitions from centrla
+async function loadDefinitions() {
+  try {
+    const resources = await getAll({
+      url: `${config.central}/definitions/v1alpha1/groups/management/resources`
+    });
+    return graph.process(resources);
+  } catch (e) {
+    console.log(e);
+    throw e;
+  }
+}
+
+// Do a get, loading all pages and adding authorization header.
+async function getAll(req) {
+  req.method = "get";
+  req.params = req.params || {};
+  let origParams = req.params;
+  let offset = 0;
+  let count = 20;
+  let response;
+  let aggregateResponse = [];
+
+  // Auth
+  req.headers = req.headers || {};
+  req.headers.Authorization = `Bearer ${accessToken}`;
+
+  console.log(`Loading: ${req.url}`);
+  try {
+    do {
+      console.log(`${offset}-${offset+count}`);
+      req.params = {
+        ...origParams,
+        offset,
+        count
+      };
+      response = await axios(req);
+      aggregateResponse = aggregateResponse.concat(response.data);
+      offset += response.data.length;
+    } while (response.data.length === count);    
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
+
+  return aggregateResponse;
 }
 
 // Get all the resources that have the projet tag.
@@ -351,6 +302,10 @@ async function processProject() {
   try {
     accessToken = await access.getAccessToken();
     if (process.env.GITHUB_WORKSPACE) {
+      let defs = await loadDefinitions();
+      RESOURCES = defs.naming;
+      ORDER = defs.order;
+
       const filesystemProject = await loadProjectFiles();
       const centralProject = await loadProjectFromCentral();
       
