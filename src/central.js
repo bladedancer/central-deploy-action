@@ -43,7 +43,6 @@ async function loadDefinitions() {
     });
     return graph.process(resources);
   } catch (e) {
-    console.log(e);
     throw e;
   }
 }
@@ -76,7 +75,6 @@ async function getAll(req) {
       offset += response.data.length;
     } while (response.data.length === count);    
   } catch (e) {
-    console.error(e);
     throw e;
   }
 
@@ -146,7 +144,6 @@ async function loadTaggedResource(kind, tag, scope) {
     });
     return response.data;
   } catch (e) {
-    console.log(e);
     throw e;
   }
 }
@@ -295,7 +292,6 @@ async function applyToCentral(method, url, data) {
       // ignore it
       return;
     }
-    console.error(e);
     throw e;
   }
 }
@@ -319,7 +315,6 @@ async function processProject() {
       console.log(accessToken);
     }
   } catch (err) {
-    console.error(err);
     throw err;
   }
 }
