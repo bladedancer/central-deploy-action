@@ -156,7 +156,12 @@ async function loadProjectFiles() {
     for await (const yamlFile of getYaml(process.env.GITHUB_WORKSPACE)) {
       console.log(`Loading ${yamlFile}`);
       const raw = fs.readFileSync(yamlFile, 'utf8');
-      yaml.safeLoadAll(raw, doc => project.push(doc));
+      yaml.safeLoadAll(raw, doc => {
+        if (!RESOURCES[doc.kind]) {
+          throw new Error(`Resource in file ${yamlFile} of kind ${doc.kind} does not exist on the server.`);
+        }
+        project.push(doc);
+      });
     }
   } catch (e) {
     throw e;
