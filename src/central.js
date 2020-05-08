@@ -90,32 +90,42 @@ async function loadProjectFromCentral() {
   let scopes = [];
   let project = [];
 
+  let rootProms = [];
   for (const kind of rootKinds) {
-    try {
-      const resources = await loadTaggedResource(kind, config.tag);
-      //console.log(resources);
-      scopes = scopes.concat(resources);
-    } catch (e) {
-      throw e;
-    }
+    rootProms.push(loadTaggedResource(kind, config.tag));
   }
+
+  try {
+    const resps = await Promise.all(rootProms)
+    resps.forEach(resources => {
+      scopes = scopes.concat(resources);
+    });
+  } catch (e) {
+    throw e;
+  }
+
   project = project.concat(scopes);
 
   // Now load Scoped kinds in all tagged scopes
+  let scopedProms = [];
   for (const scope of scopes) {
     const scopedKinds = Object.keys(RESOURCES).filter(r => RESOURCES[r].scope === scope.kind);
     for (const kind of scopedKinds) {
-      try {
-        const resources = await loadTaggedResource(kind, config.tag, scope.name);
-        // Surprisingly the scope isn't in the response.
-        resources.forEach(r => {
-          r.scope = scope.name;
-        })
-        project = project.concat(resources);
-      } catch (e) {
-        throw e;
-      }
+      scopedProms.push(loadTaggedResource(kind, config.tag, scope.name));
     }
+  }
+
+  try {
+    const resps = await Promise.all(scopedProms)
+    resps.forEach(resources => {
+      // On api-server master scope is not in the resource, add it if not set
+      resources.forEach(r => {
+        r.scope = r.scope || scope.name;
+      })
+      project = project.concat(resources);
+    });
+  } catch (e) {
+    throw e;
   }
 
   return mapByPath(project);
