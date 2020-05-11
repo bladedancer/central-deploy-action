@@ -183,6 +183,7 @@ async function loadProjectFiles() {
 function delta(desired, actual) {
   // Clean up the objects
   Object.values(desired).forEach(d => {
+    delete d.description;
     d.attributes = d.attributes || {};
     d.tags = d.tags || [];
     if (d.tags.indexOf(config.tag) === -1) {
