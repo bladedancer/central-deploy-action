@@ -167,6 +167,10 @@ async function loadProjectFiles() {
       console.log(`Loading ${yamlFile}`);
       const raw = fs.readFileSync(yamlFile, 'utf8');
       yaml.safeLoadAll(raw, doc => {
+        if (!doc) {
+          // An empty block
+          return;
+        }
         if (!RESOURCES[doc.kind]) {
           throw new Error(`Resource in file ${yamlFile} of kind ${doc.kind} does not exist on the server.`);
         }
