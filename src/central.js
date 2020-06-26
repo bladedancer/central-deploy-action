@@ -120,7 +120,7 @@ async function loadProjectFromCentral() {
     resps.forEach(resources => {
       // On api-server master scope is not in the resource, add it if not set
       resources.forEach(r => {
-        r.scope = r.scope || scope.name;
+        r.scope = r.scope || r.metadata.scope.name;
       })
       project = project.concat(resources);
     });
