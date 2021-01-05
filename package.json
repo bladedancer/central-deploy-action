@@ -23,7 +23,7 @@
   "dependencies": {
     "@actions/core": "1.2.0",
     "@actions/exec": "1.0.1",
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "deep-equal": "^2.0.2",
     "js-yaml": "^3.13.1",
     "jsrsasign": "^8.0.12",
